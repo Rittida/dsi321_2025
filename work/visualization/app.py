@@ -38,5 +38,27 @@ def load_data():
     df_all['PM25.aqi'] = df_all.groupby('stationID')['PM25.aqi'].transform(lambda x: x.fillna(method='ffill'))
     return df_all
 
+def filter_data(df, start_date, end_date, station):
+    df_filtered = df.copy()
+
+    # Filter by date
+    df_filtered = df_filtered[
+        (df_filtered['timestamp'].dt.date >= start_date) &
+        (df_filtered['timestamp'].dt.date <= end_date)
+    ]
+
+    # Filter by station
+    if station != "ทั้งหมด":
+        df_filtered = df_filtered[df_filtered['nameTH'] == station]
+
+    # Remove invalid AQI
+    df_filtered = df_filtered[df_filtered['PM25.aqi'] >= 0]
+
+    return df_filtered
+
+st.title("Air Quality Dashboard from LakeFS")
 df = load_data()
 st.write(df.head(10))
+
+
+
