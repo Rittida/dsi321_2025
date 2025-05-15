@@ -263,7 +263,7 @@ else:
     fig.update_layout(
         xaxis_title=None,
         yaxis_title="PM2.5 (µg/m³)",
-        legend_title="จังหวัด",
+        legend_title="Provinces",
         template="plotly_white"
     )
     st.plotly_chart(fig, use_container_width=True)
