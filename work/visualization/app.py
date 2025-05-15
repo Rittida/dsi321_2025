@@ -10,7 +10,6 @@ import time
 from zoneinfo import ZoneInfo
 from datetime import timedelta, datetime
 
-
 # Set up environments of LakeFS
 lakefs_endpoint = os.getenv("LAKEFS_ENDPOINT", "http://lakefs-dev:8000")
 ACCESS_KEY = os.getenv("LAKEFS_ACCESS_KEY")
@@ -28,67 +27,72 @@ def load_data():
     lakefs_path = "s3://air-quality/main/airquality.parquet/year=2025"
     data_list = fs.glob(f"{lakefs_path}/*/*/*/*")
     df_all = pd.concat([pd.read_parquet(f"s3://{path}", filesystem=fs) for path in data_list], ignore_index=True)
+    
     df_all['lat'] = pd.to_numeric(df_all['lat'], errors='coerce')
     df_all['long'] = pd.to_numeric(df_all['long'], errors='coerce')
-    df_all['year'] = df_all['year'].astype(int) 
+    df_all['timestamp'] = pd.to_datetime(df_all['timestamp'], errors='coerce')  # <-- เพิ่มตรงนี้
+    df_all['year'] = df_all['year'].astype(int)
     df_all['month'] = df_all['month'].astype(int)
     df_all.drop_duplicates(inplace=True)
     df_all['PM25.aqi'] = df_all['PM25.aqi'].mask(df_all['PM25.aqi'] < 0, pd.NA)
-    # Fill value "Previous Record" Group By stationID
     df_all['PM25.aqi'] = df_all.groupby('stationID')['PM25.aqi'].transform(lambda x: x.fillna(method='ffill'))
+    
+    df_all['province'] = df_all['areaEN'].str.extract(r",\s*([^,]+)$")[0].str.strip()  # <-- สร้าง province
     return df_all
 
-def filter_data(df, start_date, end_date, station):
+def filter_data(df, start_date, end_date, provinces):
     df_filtered = df.copy()
 
-    # Filter by date
     df_filtered = df_filtered[
         (df_filtered['timestamp'].dt.date >= start_date) &
         (df_filtered['timestamp'].dt.date <= end_date)
     ]
 
-    # Filter by station
-    if station != "ทั้งหมด":
-        df_filtered = df_filtered[df_filtered['nameTH'] == station]
+    # ถ้า provinces เป็น list ว่าง ให้เลือกทั้งหมด
+    if provinces and len(provinces) > 0:
+        df_filtered = df_filtered[df_filtered['province'].isin(provinces)]
 
-    # Remove invalid AQI
     df_filtered = df_filtered[df_filtered['PM25.aqi'] >= 0]
 
     return df_filtered
 
 st.title("Air Quality Dashboard")
-df = load_data()
-st.write(df.head(10))
+df_all = load_data()
 
 # Sidebar settings
 with st.sidebar:
     st.title("⚙️ Settings")
 
-    max_date = df['timestamp'].max().date()
-    min_date = df['timestamp'].min().date()
+    max_date = df_all['timestamp'].max().date()
+    min_date = df_all['timestamp'].min().date()
     default_start_date = min_date
     default_end_date = max_date
 
     start_date = st.date_input(
-        "Start date",
+        "🗓️ Start date",
         default_start_date,
         min_value=min_date,
         max_value=max_date
     )
 
     end_date = st.date_input(
-        "End date",
+        "🗓️ End date",
         default_end_date,
         min_value=min_date,
         max_value=max_date
     )
 
-    station_name = df['nameTH'].dropna().unique().tolist()
-    station_name.sort()
-    station_name.insert(0, "ทั้งหมด")
-    station = st.selectbox("Select Station", station_name)
+    province_list = df_all['province'].dropna().unique().tolist()
+    province_list.sort()
+    # เอา "All" ออกนะ เพราะ multiselect จะเลือกหลายจังหวัดเอง
+    selected_provinces = st.sidebar.multiselect(
+        "🗺️ Select Province(s)",
+        options=province_list,
+        default=province_list  # default เลือกทุกจังหวัดเลย
+    )
 
-df_filtered = filter_data(df, start_date, end_date, station)
+
+df_filtered = filter_data(df_all, start_date, end_date, selected_provinces)
 
 # Container for KPI and main content
 placeholder = st.empty()
@@ -102,7 +106,7 @@ with placeholder.container():
 
         # Previous Day
         prev_day = end_date - pd.Timedelta(days=1)
-        df_prev_day = filter_data(df, prev_day, prev_day, station)
+        df_prev_day = filter_data(df_all, prev_day, prev_day, selected_provinces)
 
         # AVG of Previous Day
         prev_avg_aqi = df_prev_day['PM25.aqi'].mean()
@@ -142,7 +146,7 @@ with placeholder.container():
             delta=f"{delta_area_aqi:+.2f}" if delta_area_aqi is not None else None
         )
     else:
-        st.warning("ไม่พบข้อมูลในช่วงเวลาหรือสถานีที่เลือก")
+        st.warning("ไม่พบข้อมูลในช่วงเวลาหรือจังหวัดที่เลือก")
 
 # Card view setting (Top 10 PM2.5)
 ## กำหนดฟังก์ชันสีตามค่า AQI
@@ -174,9 +178,15 @@ df_all['hour'] = df_all['timestamp'].dt.hour
 mask = (df_all['date'] >= start_date) & (df_all['date'] <= end_date)
 filtered_df = df_all[mask].dropna(subset=['PM25.aqi'])
 
+# Filter จังหวัด ถ้าเลือกไม่ใช่ "All"
+if selected_provinces and len(selected_provinces) > 0:
+    filtered_df = filtered_df[filtered_df['province'].isin(selected_provinces)]
+else:
+    filtered_df = filtered_df  # เลือกทั้งหมด
+
 # 2. หา Top 10 สถานีที่ PM2.5 สูงสุดในช่วงเวลานี้
 top10 = (
-    filtered_df.groupby(['stationID', 'nameTH'])['PM25.aqi']
+    filtered_df.groupby(['stationID', 'nameEN'])['PM25.aqi']
     .max()  # ถ้าอยากได้ค่าเฉลี่ยให้เปลี่ยนเป็น .mean()
     .reset_index()
     .sort_values(by='PM25.aqi', ascending=False)
@@ -184,14 +194,14 @@ top10 = (
 )
 
 # 3. ดึงข้อมูลล่าสุดของสถานีใน Top 10 เพื่อใช้แสดงการ์ด
-latest_rows = df_all[df_all['stationID'].isin(top10['stationID'])]
+latest_rows = filtered_df[filtered_df['stationID'].isin(top10['stationID'])]
 latest_rows = latest_rows.sort_values('timestamp').drop_duplicates('stationID', keep='last')
 
 cols = st.columns(3)
 for i, (_, row) in enumerate(latest_rows.iterrows()):
     col = cols[i % 3]
     with col:
-        station = row['nameTH']
+        station = row['nameEN']
         aqi = row['PM25.aqi']
         updated_time = row['timestamp'].strftime("%H:%M")
         updated_date = row['timestamp'].date()
