@@ -222,3 +222,48 @@ for i, (_, row) in enumerate(latest_rows.iterrows()):
             <p style="font-size: 12px; opacity: 0.6;">อัปเดตเวลา {updated_time} | วันที่ {updated_date}</p>
         </div>
         """, unsafe_allow_html=True)
+
+# Trend Line 
+st.header("📈 PM2.5 Trends by Province")
+
+# ใช้ข้อมูลจาก df_filtered ที่ถูกกรองตามวันที่และจังหวัดแล้ว
+if df_filtered.empty:
+    st.warning("🙅🏻‍♀️ Sorry, no PM2.5 data found for the selected dates or provinces.")
+else:
+    df_trend = df_filtered.copy()
+
+    # ตรวจสอบว่าเลือกวันเดียวกันหรือหลายวัน
+    if start_date == end_date:
+        # แนวโน้มรายชั่วโมง
+        df_trend['hour'] = df_trend['timestamp'].dt.hour
+        df_trend_grouped = df_trend.groupby(['province', 'hour'])['PM25.aqi'].mean().reset_index()
+        fig = px.line(
+            df_trend_grouped,
+            x='hour',
+            y='PM25.aqi',
+            color='province',
+            markers=True,
+            labels={'hour': 'Hours', 'PM25.aqi': 'PM2.5'},
+            title='Hourly PM2.5 Trend Chart'
+        )
+    else:
+        # แนวโน้มรายวัน
+        df_trend['date'] = df_trend['timestamp'].dt.date
+        df_trend_grouped = df_trend.groupby(['province', 'date'])['PM25.aqi'].mean().reset_index()
+        fig = px.line(
+            df_trend_grouped,
+            x='date',
+            y='PM25.aqi',
+            color='province',
+            markers=True,
+            labels={'date': 'Date', 'PM25.aqi': 'PM2.5'},
+            title='Daily Average PM2.5 Trend'
+        )
+
+    fig.update_layout(
+        xaxis_title=None,
+        yaxis_title="PM2.5 (µg/m³)",
+        legend_title="จังหวัด",
+        template="plotly_white"
+    )
+    st.plotly_chart(fig, use_container_width=True)
