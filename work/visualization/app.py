@@ -36,9 +36,6 @@ def load_data():
     df_all['PM25.aqi'] = df_all['PM25.aqi'].mask(df_all['PM25.aqi'] < 0, pd.NA)
     # Fill value "Previous Record" Group By stationID
     df_all['PM25.aqi'] = df_all.groupby('stationID')['PM25.aqi'].transform(lambda x: x.fillna(method='ffill'))
-    
-    st.write("🧾 ชื่อคอลัมน์ทั้งหมดใน DataFrame:", df_all.columns.tolist())
-
     return df_all
 
 def filter_data(df, start_date, end_date, station):
@@ -63,13 +60,9 @@ st.title("Air Quality Dashboard")
 df = load_data()
 st.write(df.head(10))
 
-
-
-
 # Sidebar settings
 with st.sidebar:
-    st.title("Air4Thai Dashboard")
-    st.header("⚙️ Settings")
+    st.title("⚙️ Settings")
 
     max_date = df['timestamp'].max().date()
     min_date = df['timestamp'].min().date()
@@ -170,28 +163,38 @@ def get_color(aqi):
     else:
         return '#a87383'  # อันตรายสูง (เทาเข้ม)
 
-## หา record ล่าสุดของแต่ละ station
-latest = (
-    df.sort_values(by=['stationID', 'year', 'month', 'day', 'hour'], ascending=False)
-    .drop_duplicates(subset='stationID')
-    .copy()
+df_all = load_data()
+
+st.header("🚨 Top 10 สถานีที่มีค่า PM2.5 สูงสุด")
+# 1. กรองช่วงวันที่ที่เลือก
+df_all['timestamp'] = pd.to_datetime(df_all['timestamp'], errors='coerce')
+df_all['date'] = df_all['timestamp'].dt.date
+df_all['hour'] = df_all['timestamp'].dt.hour
+
+mask = (df_all['date'] >= start_date) & (df_all['date'] <= end_date)
+filtered_df = df_all[mask].dropna(subset=['PM25.aqi'])
+
+# 2. หา Top 10 สถานีที่ PM2.5 สูงสุดในช่วงเวลานี้
+top10 = (
+    filtered_df.groupby(['stationID', 'nameTH'])['PM25.aqi']
+    .max()  # ถ้าอยากได้ค่าเฉลี่ยให้เปลี่ยนเป็น .mean()
+    .reset_index()
+    .sort_values(by='PM25.aqi', ascending=False)
+    .head(10)
 )
 
-## แสดงรายการการ์ดแบบ Grid
-st.title("🚨 Top 10 สถานีตรวจวัดคุณภาพอากาศที่มีค่า PM2.5 สูงสุด")
+# 3. ดึงข้อมูลล่าสุดของสถานีใน Top 10 เพื่อใช้แสดงการ์ด
+latest_rows = df_all[df_all['stationID'].isin(top10['stationID'])]
+latest_rows = latest_rows.sort_values('timestamp').drop_duplicates('stationID', keep='last')
 
-## เรียงข้อมูลจาก PM2.5.aqi จากมากไปน้อย แล้วเลือก 9 สถานีที่มีค่ามากที่สุด
-top_10_stations = latest.sort_values('PM25.aqi', ascending=False).head(10)
-
-## แสดงการ์ด
 cols = st.columns(3)
-
-for i, (_, row) in enumerate(top_10_stations.iterrows()):
+for i, (_, row) in enumerate(latest_rows.iterrows()):
     col = cols[i % 3]
     with col:
         station = row['nameTH']
         aqi = row['PM25.aqi']
-        updated_time = f"{int(row['hour']):02d}:00"
+        updated_time = row['timestamp'].strftime("%H:%M")
+        updated_date = row['timestamp'].date()
         color = get_color(aqi)
         st.markdown(f"""
         <div style="
@@ -202,8 +205,7 @@ for i, (_, row) in enumerate(top_10_stations.iterrows()):
             color:#000;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
             <h4>{station}</h4>
-            <strong>PM2.5:</strong> {row["PM25.aqi"]:.1f} µg/m³</p>
-            <p style="font-size: 12px; opacity: 0.6;">อัปเดตเวลา {updated_time}</p>
+            <p><strong>PM2.5:</strong> {aqi:.1f} µg/m³</p>
+            <p style="font-size: 12px; opacity: 0.6;">อัปเดตเวลา {updated_time} | วันที่ {updated_date}</p>
         </div>
         """, unsafe_allow_html=True)
-
