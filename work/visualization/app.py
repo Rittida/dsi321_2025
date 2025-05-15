@@ -81,16 +81,19 @@ with st.sidebar:
         min_value=min_date,
         max_value=max_date
     )
-
+    ALL_PROVINCES = "Select All"
     province_list = df_all['province'].dropna().unique().tolist()
     province_list.sort()
-    # เอา "All" ออกนะ เพราะ multiselect จะเลือกหลายจังหวัดเอง
+    province_options = [ALL_PROVINCES] + province_list
+
     selected_provinces = st.sidebar.multiselect(
         "🗺️ Select Province(s)",
-        options=province_list,
-        default=province_list  # default เลือกทุกจังหวัดเลย
+        options=province_options,
+        default=[ALL_PROVINCES]
     )
 
+    if ALL_PROVINCES in selected_provinces:
+        selected_provinces = province_list
 
 df_filtered = filter_data(df_all, start_date, end_date, selected_provinces)
 
