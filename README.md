@@ -11,9 +11,5 @@ Air quality has become an increasingly critical issue worldwide because it signi
 
 In this project, we work with near real-time air quality data collected from multiple automatic monitoring stations spread across various provinces in Thailand. The dataset includes hourly PM2.5 measurements along with important details such as timestamps and station locations. This data is provided by the Air4Thai network through an API maintained by the Pollution Control Department, ensuring that the information is reliable and regularly updated. To make the entire process smooth and scalable, we use Prefect.io to automate the data workflows and Docker to containerize the system, allowing it to run consistently across different environments.
 
-<<<<<<< HEAD
-🪄 Main goal is to build an interactive dashboard using Streamlit that helps users easily understand trends in air pollution, identify areas with good or poor air quality, and recommend provinces with the best conditions for outdoor activities.
-=======
 🪄 Main goal is to build an interactive dashboard using Streamlit that helps users easily understand trends in air pollution, identify areas with good or poor air quality, and recommend provinces with the best conditions for outdoor activities.
 
->>>>>>> 636e8f1368e05ead1c226cafc88537d99c656021
