@@ -66,10 +66,16 @@ This allows users to easily detect changes in air quality over time, whether on 
 
 ## ☄️ Top 10 Stations with Highest PM2.5
 This section is a card-based view that lists the 10 monitoring stations currently reporting the highest PM2.5 levels. The data updates based on the applied province filters and reflects the most recent data available.
+<p align="center">
+  <img width="600" alt="Screenshot 2568-05-27 at 01 19 15" src="https://github.com/user-attachments/assets/7f06630e-5f3e-4b2f-b32b-2d45adc19252" />
+</p>
 
 ## Machine Learning
 
 **🌤️ Recommender System: Best Provinces to Go Outside (K-Means Clustering)**
+<p align="center">
+  <img width="432" alt="Screenshot 2568-05-27 at 01 24 12" src="https://github.com/user-attachments/assets/e580eb99-3fb4-4ad1-bb18-5e59182178a4" />
+</p>
 
 To assist users in choosing the best locations for outdoor activities, we integrated an unsupervised machine learning model using K-Means Clustering. This module identifies the Top 5 provinces with the best air quality in the last 7 days. Here's how it works:
 
@@ -107,3 +113,6 @@ The algorithm clusters provinces with similar air quality levels together. Each 
 We calculate the mean PM2.5 for each cluster and identify the cluster with the lowest average, indicating the best air quality.
 ### 5. Top 5 Recommendations
 From the best-performing cluster, we select the Top 5 provinces with the lowest PM2.5 values and present them as recommendations for outdoor activities.
+<p align="center">
+  <img width="721" alt="Screenshot 2568-05-27 at 01 24 22" src="https://github.com/user-attachments/assets/74950fec-ac11-4b1f-a905-c1fb06ffb86a" />
+</p>
