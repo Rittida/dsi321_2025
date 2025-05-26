@@ -128,33 +128,58 @@ with col3:
     st.metric("🍂 National Average PM2.5", f"{today_avg:.1f} µg/m³", delta=f"{(today_avg - yesterday_avg):+.1f} µg/m³")
 
 # ML Part
-## Convert datetime to the correct format
+import streamlit as st
+import pandas as pd
+from datetime import datetime, timedelta
+from sklearn.cluster import KMeans
+import numpy as np
+
+# สมมติ df_all คือ DataFrame ที่มีข้อมูล timestamp, province, PM25.aqi
+# 1. แปลง datetime ให้ถูกต้อง
 df_all['timestamp'] = pd.to_datetime(df_all['timestamp'])
 
-## Filter data from the past 7 days
+# 2. กรองข้อมูลช่วง 7 วันที่ผ่านมา
 today = datetime.today()
 seven_days_ago = today - timedelta(days=7)
 last_7_days_df = df_all[df_all['timestamp'] >= seven_days_ago]
 
-## Calculate average PM2.5 per province over the last 7 days
+# 3. คำนวณค่าเฉลี่ย PM2.5 ต่อจังหวัดในช่วง 7 วันล่าสุด
 province_avg_pm25 = last_7_days_df.groupby('province')['PM25.aqi'].mean().reset_index()
 
-## Sort and select the top 5 provinces with the lowest average PM2.5
-top_5_provinces = province_avg_pm25.nsmallest(5, 'PM25.aqi')
+# 4. เตรียมข้อมูลสำหรับ K-Means
+X = province_avg_pm25[['PM25.aqi']].values
 
-## Use session_state to store the toggle button state
-if 'show_recommend' not in st.session_state:
-    st.session_state.show_recommend = False
+# 5. สร้างโมเดล KMeans กับจำนวน cluster ที่เหมาะสม (เช่น 3)
+kmeans = KMeans(n_clusters=3, random_state=42)
+kmeans.fit(X)
 
-## Create a toggle button
-if st.button("🌤️ Recommender: Best Provinces to Go Outside"):
-    st.session_state.show_recommend = not st.session_state.show_recommend
+# 6. เพิ่มคอลัมน์ cluster label ให้กับ DataFrame
+province_avg_pm25['cluster'] = kmeans.labels_
 
-## Show or hide the table based on the toggle state
-if st.session_state.show_recommend:
-    st.subheader("✨ Top 5 Provinces with Best Air Quality (Last 7 Days)")
+# 7. หา cluster ที่มีค่าเฉลี่ย PM2.5 ต่ำสุด (อากาศดีที่สุด)
+cluster_means = province_avg_pm25.groupby('cluster')['PM25.aqi'].mean()
+best_cluster = cluster_means.idxmin()
+
+# 8. เลือกจังหวัดในกลุ่มอากาศดีที่สุด
+best_provinces_cluster = province_avg_pm25[province_avg_pm25['cluster'] == best_cluster]
+
+# 9. เรียงลำดับจังหวัดใน cluster ตามค่า PM2.5 จากน้อยไปมาก และเลือก Top 5
+top_5_best_provinces = best_provinces_cluster.nsmallest(5, 'PM25.aqi')
+
+# 10. ใช้ session_state เก็บสถานะ toggle button
+if 'show_recommend_kmeans' not in st.session_state:
+    st.session_state.show_recommend_kmeans = False
+
+# 11. สร้าง toggle button
+if st.button("🌤️ Recommender: Best Provinces to Go Outside (K-Means)"):
+    st.session_state.show_recommend_kmeans = not st.session_state.show_recommend_kmeans
+
+# 12. แสดงผลเมื่อ toggle เป็น True
+if st.session_state.show_recommend_kmeans:
+    st.subheader("✨ Top 5 Provinces in Best Air Quality (Last 7 Days)")
+    display_df = top_5_best_provinces.drop(columns=['cluster'])
     st.dataframe(
-        top_5_provinces.rename(columns={'province': 'Provinces', 'PM25.aqi': 'Average PM2.5 (µg/m³)'}),
+        display_df.rename(columns={'province': 'Province', 'PM25.aqi': 'Average PM2.5 (µg/m³)'}),
         use_container_width=True
     )
 
