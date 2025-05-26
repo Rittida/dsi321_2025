@@ -18,7 +18,7 @@ In this project, we work with near real-time air quality data collected from mul
 
 ### 🪿 List of column names (15 Columns)
 <p align="center">
-  <img width="700" alt="Screenshot 2568-05-27 at 02 35 20" src="https://github.com/user-attachments/assets/20500a3d-0bad-43b7-8090-be6ef7587447" />
+  <img width="1000" alt="Screenshot 2568-05-27 at 02 35 20" src="https://github.com/user-attachments/assets/20500a3d-0bad-43b7-8090-be6ef7587447" />
 </p>
 
 1. timestamp: : ISO format timestamp of data collection.
