@@ -17,21 +17,21 @@ In this project, we work with near real-time air quality data collected from mul
 >🪄 Main goal is to build an interactive dashboard using Streamlit that helps users easily understand trends in air pollution, identify areas with good or poor air quality, and recommend provinces with the best conditions for outdoor activities.
 
 ### 🪿 List of column names (15 Columns)
-1. timestamp
-2. stationID
-3. nameTH
-4. nameEN
-5. areaTH
-6. areaEN
-7. stationType
-8. lat
-9. long
-10. PM25.color_id
-11. PM25.aqi
-12. day
-13. hour
-14. month
-15. year
+1. timestamp: : ISO format timestamp of data collection.
+2. stationID: Station ID code.
+3. nameTH: Station name in Thai.
+4. nameEN: Station name in English.
+5. areaTH: Area name in Thai.
+6. areaEN: Area name in English.
+7. stationType: Type of the station (e.g., roadside, general area).
+8. lat: Latitude of the station.
+9. long: Longitude of the station.
+10. PM25.color_id: Color ID for visualization based on PM2.5 level.
+11. PM25.aqi: PM2.5 Air Quality Index (AQI).
+12. year: Year of data record.
+13. month: Month of data record.
+14. day: Day of data record.
+15. hour: Hour of data record.
 
 # 🚀 Dashbord using Steamlit
 In this project, we designed an interactive dashboard to help users explore air quality data more intuitively. The dashboard includes several components that allow users to filter and analyze PM2.5 levels across different provinces and time periods in Thailand.
