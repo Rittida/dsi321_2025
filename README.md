@@ -16,6 +16,23 @@ In this project, we work with near real-time air quality data collected from mul
 
 >🪄 Main goal is to build an interactive dashboard using Streamlit that helps users easily understand trends in air pollution, identify areas with good or poor air quality, and recommend provinces with the best conditions for outdoor activities.
 
+### 🪿 List of column names (15 Columns)
+1. timestamp
+2. stationID
+3. nameTH
+4. nameEN
+5. areaTH
+6. areaEN
+7. stationType
+8. lat
+9. long
+10. PM25.color_id
+11. PM25.aqi
+12. day
+13. hour
+14. month
+15. year
+
 # 🚀 Dashbord using Steamlit
 In this project, we designed an interactive dashboard to help users explore air quality data more intuitively. The dashboard includes several components that allow users to filter and analyze PM2.5 levels across different provinces and time periods in Thailand.
 <p align="center">
@@ -74,7 +91,7 @@ This section is a card-based view that lists the 10 monitoring stations currentl
 
 **🌤️ Recommender System: Best Provinces to Go Outside (K-Means Clustering)**
 <p align="center">
-  <img width="432" alt="Screenshot 2568-05-27 at 01 24 12" src="https://github.com/user-attachments/assets/e580eb99-3fb4-4ad1-bb18-5e59182178a4" />
+  <img width="500" alt="Screenshot 2568-05-27 at 01 24 12" src="https://github.com/user-attachments/assets/e580eb99-3fb4-4ad1-bb18-5e59182178a4" />
 </p>
 
 To assist users in choosing the best locations for outdoor activities, we integrated an unsupervised machine learning model using K-Means Clustering. This module identifies the Top 5 provinces with the best air quality in the last 7 days. Here's how it works:
@@ -116,3 +133,30 @@ From the best-performing cluster, we select the Top 5 provinces with the lowest 
 <p align="center">
   <img width="721" alt="Screenshot 2568-05-27 at 01 24 22" src="https://github.com/user-attachments/assets/74950fec-ac11-4b1f-a905-c1fb06ffb86a" />
 </p>
+
+## ✨ The Value and Impact of Our PM2.5 Recommender System using Machine Learning
+
+The development of our air quality recommender system, powered by unsupervised machine learning (K-Means clustering), represents more than just a technical solution—it is a tool with real-world impact that enhances public health awareness, supports personal decision-making, and empowers both individuals and organizations to take proactive steps in response to air pollution.
+
+### 🎯 Why This Matters
+Air pollution, particularly fine particulate matter (PM2.5), poses a serious health risk, especially in urban environments. Prolonged exposure can lead to respiratory problems, cardiovascular diseases, and reduced quality of life. In many regions, air quality varies significantly day-to-day and location-to-location, making it difficult for citizens to make informed decisions about outdoor activities.
+
+Our system solves this problem by:
+
+- Simplifying complex air quality data into actionable insights
+- Automatically identifying provinces with the best air quality over the past 7 days
+- Providing visual, data-driven recommendations to the public
+By leveraging machine learning to group provinces with similar pollution levels, we provide users with clear and trustworthy suggestions on where and when it's safest to go outside.
+
+### 🧠 How Machine Learning Adds Value
+Using K-Means Clustering, we transformed raw numerical pollution data into meaningful categories. Here’s how the machine learning model contributes:
+
+- **Data Reduction & Clarity**: Instead of users interpreting PM2.5 values for each province, the clustering groups provinces into three easy-to-understand categories—Best, Moderate, and Poor air quality.
+- **Scalable & Adaptable**: As new data is collected daily, the model can continue to adapt, always providing updated recommendations without manual reclassification.
+- **Actionable Intelligence**: The Top 5 “recommended” provinces are selected directly from the best-performing cluster (lowest average PM2.5), which makes the insight both relevant and useful.
+
+### 👥 Who Benefits from This System?
+- **Everyday Citizens**: Individuals looking to travel, exercise, or plan outdoor activities can now do so based on data rather than guesswork.
+- **Health-Conscious Communities**: Elderly people, children, or those with respiratory issues can avoid high-risk locations.
+- **Local Governments & NGOs**: Authorities can identify which regions consistently suffer from high pollution, supporting better air quality policy and public health campaigns.
+- **Developers & Data Teams**: This project acts as a blueprint for other public-facing dashboards, proving that machine learning can be applied to real-world environmental problems with minimal input features.
