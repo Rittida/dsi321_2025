@@ -17,6 +17,10 @@ In this project, we work with near real-time air quality data collected from mul
 >🪄 Main goal is to build an interactive dashboard using Streamlit that helps users easily understand trends in air pollution, identify areas with good or poor air quality, and recommend provinces with the best conditions for outdoor activities.
 
 ### 🪿 List of column names (15 Columns)
+<p align="center">
+  <img width="700" alt="Screenshot 2568-05-27 at 02 35 20" src="https://github.com/user-attachments/assets/20500a3d-0bad-43b7-8090-be6ef7587447" />
+</p>
+
 1. timestamp: : ISO format timestamp of data collection.
 2. stationID: Station ID code.
 3. nameTH: Station name in Thai.
