@@ -9,6 +9,8 @@ import s3fs
 import time
 from zoneinfo import ZoneInfo
 from datetime import timedelta, datetime
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
 
 # Set up environments of LakeFS
 lakefs_endpoint = os.getenv("LAKEFS_ENDPOINT", "http://lakefs-dev:8000")
@@ -112,10 +114,10 @@ num_good_provinces = good_air_df['province'].nunique()
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.metric("✅ สถานีที่อากาศดี", f"{num_good_stations} สถานี")
+    st.metric("🤩 Stations with Good Air Quality", f"{num_good_stations} Stations")
 
 with col2:
-    st.metric("✅ จังหวัดที่อากาศดี", f"{num_good_provinces} จังหวัด")
+    st.metric("🌈 Provinces with Good Air Quality", f"{num_good_provinces} Provinces")
 
 with col3:
     today_avg = df_today['PM25.aqi'].mean()
@@ -123,9 +125,7 @@ with col3:
     df_yesterday = df_all[df_all['timestamp'].dt.date == yesterday.date()]
     yesterday_avg = df_yesterday['PM25.aqi'].mean()
 
-    st.metric("ค่า PM2.5 เฉลี่ยทั่วประเทศ", f"{today_avg:.1f} µg/m³", delta=f"{(today_avg - yesterday_avg):+.1f}")
-
-
+    st.metric("🍂 National Average PM2.5", f"{today_avg:.1f} µg/m³", delta=f"{(today_avg - yesterday_avg):+.1f} µg/m³")
 
 # Card view setting (Top 10 PM2.5)
 ## กำหนดฟังก์ชันสีตามค่า AQI
@@ -148,7 +148,7 @@ def get_color(aqi):
 
 df_all = load_data()
 
-st.header("🚨 Top 10 สถานีที่มีค่า PM2.5 สูงสุด")
+st.header("🚨 Top 10 Stations with Highest PM2.5")
 # 1. กรองช่วงวันที่ที่เลือก
 df_all['timestamp'] = pd.to_datetime(df_all['timestamp'], errors='coerce')
 df_all['date'] = df_all['timestamp'].dt.date
@@ -200,7 +200,7 @@ for i, (_, row) in enumerate(latest_rows.iterrows()):
         """, unsafe_allow_html=True)
 
 # Trend Line 
-st.header("📈 PM2.5 Trends by Province")
+st.header("📈 PM2.5 Trends by Provinces")
 
 # ใช้ข้อมูลจาก df_filtered ที่ถูกกรองตามวันที่และจังหวัดแล้ว
 if df_filtered.empty:
@@ -243,3 +243,6 @@ else:
         template="plotly_white"
     )
     st.plotly_chart(fig, use_container_width=True)
+
+# ML Part
+
