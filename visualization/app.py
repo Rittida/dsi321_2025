@@ -245,4 +245,55 @@ else:
     st.plotly_chart(fig, use_container_width=True)
 
 # ML Part
+st.header("🏕️ Recommender: Best Provinces to Go Outside")
 
+## Select data latest 7 days
+latest_date = df_all['timestamp'].max().date()
+start_7days = latest_date - timedelta(days=6)
+
+df_last7days = df_all[
+    (df_all['timestamp'].dt.date >= start_7days) &
+    (df_all['timestamp'].dt.date <= latest_date)
+]
+
+## Average PM2.5 per province
+province_pm25_avg = (
+    df_last7days.groupby('province')['PM25.aqi']
+    .mean()
+    .reset_index()
+    .dropna()
+)
+
+## Prepared data for KMeans
+X = province_pm25_avg[['PM25.aqi']]
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+## Use KMeans to cluster into 3 groups (Good, Medium, Poor)
+kmeans = KMeans(n_clusters=3, random_state=42, n_init='auto')
+province_pm25_avg['cluster'] = kmeans.fit_predict(X_scaled)
+
+## Identify the best cluster (with the lowest PM2.5)
+cluster_means = province_pm25_avg.groupby('cluster')['PM25.aqi'].mean()
+best_cluster = cluster_means.idxmin()
+
+best_provinces_df = province_pm25_avg[province_pm25_avg['cluster'] == best_cluster]
+top5_best = best_provinces_df.sort_values(by='PM25.aqi').head(5)
+
+## Visualize -> Top 5 Provinces with Best Air Quality (Last 7 Days)
+st.subheader("📍 Top 5 Provinces with Best Air Quality (Last 7 Days)")
+
+for i, row in top5_best.iterrows():
+    st.markdown(f"""
+    <div style="
+        background-color:#a8e05f;
+        padding:16px;
+        border-radius:16px;
+        margin:10px 0;
+        color:#000;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <h4>{row['province']}</h4>
+        <p><strong>Avg. PM2.5:</strong> {row['PM25.aqi']:.2f} µg/m³</p>
+        <p style="font-size: 12px; opacity: 0.6;">ช่วงเวลา: {start_7days.strftime('%d %b %Y')} – {latest_date.strftime('%d %b %Y')}</p>
+    </div>
+    """, unsafe_allow_html=True)
