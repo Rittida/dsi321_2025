@@ -50,7 +50,7 @@ def filter_data(df, start_date, end_date, provinces):
         (df_filtered['timestamp'].dt.date <= end_date)
     ]
 
-    # ถ้า provinces เป็น list ว่าง ให้เลือกทั้งหมด
+    # If the provinces list is empty, select all provinces
     if provinces and len(provinces) > 0:
         df_filtered = df_filtered[df_filtered['province'].isin(provinces)]
 
@@ -103,7 +103,7 @@ df_filtered = filter_data(df_all, start_date, end_date, selected_provinces)
 today = pd.to_datetime(datetime.today().date())
 df_today = df_all[pd.to_datetime(df_all['timestamp']).dt.date == today.date()]
 
-## Define PM2.5 < 25 = "อากาศดี"
+## Define PM2.5 < 25 = "Good air quality"
 good_air_df = df_today[df_today['PM25.aqi'] < 25]
 
 ## Calculate number of stations and province
@@ -127,8 +127,84 @@ with col3:
 
     st.metric("🍂 National Average PM2.5", f"{today_avg:.1f} µg/m³", delta=f"{(today_avg - yesterday_avg):+.1f} µg/m³")
 
+# ML Part
+## Convert datetime to the correct format
+df_all['timestamp'] = pd.to_datetime(df_all['timestamp'])
+
+## Filter data from the past 7 days
+today = datetime.today()
+seven_days_ago = today - timedelta(days=7)
+last_7_days_df = df_all[df_all['timestamp'] >= seven_days_ago]
+
+## Calculate average PM2.5 per province over the last 7 days
+province_avg_pm25 = last_7_days_df.groupby('province')['PM25.aqi'].mean().reset_index()
+
+## Sort and select the top 5 provinces with the lowest average PM2.5
+top_5_provinces = province_avg_pm25.nsmallest(5, 'PM25.aqi')
+
+## Use session_state to store the toggle button state
+if 'show_recommend' not in st.session_state:
+    st.session_state.show_recommend = False
+
+## Create a toggle button
+if st.button("🌤️ Recommender: Best Provinces to Go Outside"):
+    st.session_state.show_recommend = not st.session_state.show_recommend
+
+## Show or hide the table based on the toggle state
+if st.session_state.show_recommend:
+    st.subheader("✨ Top 5 Provinces with Best Air Quality (Last 7 Days)")
+    st.dataframe(
+        top_5_provinces.rename(columns={'province': 'Provinces', 'PM25.aqi': 'Average PM2.5 (µg/m³)'}),
+        use_container_width=True
+    )
+
+# Trend Line 
+st.header("📈 PM2.5 Trends by Provinces")
+
+## Use the df_filtered dataset filtered by selected date range and province
+if df_filtered.empty:
+    st.warning("🙅🏻‍♀️ Sorry, no PM2.5 data found for the selected dates or provinces.")
+else:
+    df_trend = df_filtered.copy()
+
+    # Check whether a single day or multiple days are selected.
+    if start_date == end_date:
+        # Hourly trend
+        df_trend['hour'] = df_trend['timestamp'].dt.hour
+        df_trend_grouped = df_trend.groupby(['province', 'hour'])['PM25.aqi'].mean().reset_index()
+        fig = px.line(
+            df_trend_grouped,
+            x='hour',
+            y='PM25.aqi',
+            color='province',
+            markers=True,
+            labels={'hour': 'Hours', 'PM25.aqi': 'PM2.5'},
+            title='Hourly PM2.5 Trend Chart'
+        )
+    else:
+        # Daily trend
+        df_trend['date'] = df_trend['timestamp'].dt.date
+        df_trend_grouped = df_trend.groupby(['province', 'date'])['PM25.aqi'].mean().reset_index()
+        fig = px.line(
+            df_trend_grouped,
+            x='date',
+            y='PM25.aqi',
+            color='province',
+            markers=True,
+            labels={'date': 'Date', 'PM25.aqi': 'PM2.5'},
+            title='Daily Average PM2.5 Trend'
+        )
+
+    fig.update_layout(
+        xaxis_title=None,
+        yaxis_title="PM2.5 (µg/m³)",
+        legend_title="Provinces",
+        template="plotly_white"
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
 # Card view setting (Top 10 PM2.5)
-## กำหนดฟังก์ชันสีตามค่า AQI
+## Define a color function based on AQI values
 def get_color(aqi):
     if pd.isna(aqi):
         return '#d3d3d3'  # สีเทาอ่อน สำหรับค่าไม่มี
@@ -149,7 +225,7 @@ def get_color(aqi):
 df_all = load_data()
 
 st.header("🚨 Top 10 Stations with Highest PM2.5")
-# 1. กรองช่วงวันที่ที่เลือก
+## Filter data within the selected date range
 df_all['timestamp'] = pd.to_datetime(df_all['timestamp'], errors='coerce')
 df_all['date'] = df_all['timestamp'].dt.date
 df_all['hour'] = df_all['timestamp'].dt.hour
@@ -157,22 +233,22 @@ df_all['hour'] = df_all['timestamp'].dt.hour
 mask = (df_all['date'] >= start_date) & (df_all['date'] <= end_date)
 filtered_df = df_all[mask].dropna(subset=['PM25.aqi'])
 
-# Filter จังหวัด ถ้าเลือกไม่ใช่ "All"
+## Filter by province if the selected option is not 'All'
 if selected_provinces and len(selected_provinces) > 0:
     filtered_df = filtered_df[filtered_df['province'].isin(selected_provinces)]
 else:
-    filtered_df = filtered_df  # เลือกทั้งหมด
+    filtered_df = filtered_df  # if select 'all'
 
-# 2. หา Top 10 สถานีที่ PM2.5 สูงสุดในช่วงเวลานี้
+## Identify the Top 10 stations with the highest PM2.5 levels during this period
 top10 = (
     filtered_df.groupby(['stationID', 'nameEN'])['PM25.aqi']
-    .max()  # ถ้าอยากได้ค่าเฉลี่ยให้เปลี่ยนเป็น .mean()
+    .max()
     .reset_index()
     .sort_values(by='PM25.aqi', ascending=False)
     .head(10)
 )
 
-# 3. ดึงข้อมูลล่าสุดของสถานีใน Top 10 เพื่อใช้แสดงการ์ด
+## Fetch the most recent data for the Top 10 stations to display in cards
 latest_rows = filtered_df[filtered_df['stationID'].isin(top10['stationID'])]
 latest_rows = latest_rows.sort_values('timestamp').drop_duplicates('stationID', keep='last')
 
@@ -198,102 +274,3 @@ for i, (_, row) in enumerate(latest_rows.iterrows()):
             <p style="font-size: 12px; opacity: 0.6;">อัปเดตเวลา {updated_time} | วันที่ {updated_date}</p>
         </div>
         """, unsafe_allow_html=True)
-
-# Trend Line 
-st.header("📈 PM2.5 Trends by Provinces")
-
-# ใช้ข้อมูลจาก df_filtered ที่ถูกกรองตามวันที่และจังหวัดแล้ว
-if df_filtered.empty:
-    st.warning("🙅🏻‍♀️ Sorry, no PM2.5 data found for the selected dates or provinces.")
-else:
-    df_trend = df_filtered.copy()
-
-    # ตรวจสอบว่าเลือกวันเดียวกันหรือหลายวัน
-    if start_date == end_date:
-        # แนวโน้มรายชั่วโมง
-        df_trend['hour'] = df_trend['timestamp'].dt.hour
-        df_trend_grouped = df_trend.groupby(['province', 'hour'])['PM25.aqi'].mean().reset_index()
-        fig = px.line(
-            df_trend_grouped,
-            x='hour',
-            y='PM25.aqi',
-            color='province',
-            markers=True,
-            labels={'hour': 'Hours', 'PM25.aqi': 'PM2.5'},
-            title='Hourly PM2.5 Trend Chart'
-        )
-    else:
-        # แนวโน้มรายวัน
-        df_trend['date'] = df_trend['timestamp'].dt.date
-        df_trend_grouped = df_trend.groupby(['province', 'date'])['PM25.aqi'].mean().reset_index()
-        fig = px.line(
-            df_trend_grouped,
-            x='date',
-            y='PM25.aqi',
-            color='province',
-            markers=True,
-            labels={'date': 'Date', 'PM25.aqi': 'PM2.5'},
-            title='Daily Average PM2.5 Trend'
-        )
-
-    fig.update_layout(
-        xaxis_title=None,
-        yaxis_title="PM2.5 (µg/m³)",
-        legend_title="Provinces",
-        template="plotly_white"
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-# ML Part
-st.header("🏕️ Recommender: Best Provinces to Go Outside")
-
-## Select data latest 7 days
-latest_date = df_all['timestamp'].max().date()
-start_7days = latest_date - timedelta(days=6)
-
-df_last7days = df_all[
-    (df_all['timestamp'].dt.date >= start_7days) &
-    (df_all['timestamp'].dt.date <= latest_date)
-]
-
-## Average PM2.5 per province
-province_pm25_avg = (
-    df_last7days.groupby('province')['PM25.aqi']
-    .mean()
-    .reset_index()
-    .dropna()
-)
-
-## Prepared data for KMeans
-X = province_pm25_avg[['PM25.aqi']]
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
-
-## Use KMeans to cluster into 3 groups (Good, Medium, Poor)
-kmeans = KMeans(n_clusters=3, random_state=42, n_init='auto')
-province_pm25_avg['cluster'] = kmeans.fit_predict(X_scaled)
-
-## Identify the best cluster (with the lowest PM2.5)
-cluster_means = province_pm25_avg.groupby('cluster')['PM25.aqi'].mean()
-best_cluster = cluster_means.idxmin()
-
-best_provinces_df = province_pm25_avg[province_pm25_avg['cluster'] == best_cluster]
-top5_best = best_provinces_df.sort_values(by='PM25.aqi').head(5)
-
-## Visualize -> Top 5 Provinces with Best Air Quality (Last 7 Days)
-st.subheader("📍 Top 5 Provinces with Best Air Quality (Last 7 Days)")
-
-for i, row in top5_best.iterrows():
-    st.markdown(f"""
-    <div style="
-        background-color:#a8e05f;
-        padding:16px;
-        border-radius:16px;
-        margin:10px 0;
-        color:#000;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <h4>{row['province']}</h4>
-        <p><strong>Avg. PM2.5:</strong> {row['PM25.aqi']:.2f} µg/m³</p>
-        <p style="font-size: 12px; opacity: 0.6;">ช่วงเวลา: {start_7days.strftime('%d %b %Y')} – {latest_date.strftime('%d %b %Y')}</p>
-    </div>
-    """, unsafe_allow_html=True)
