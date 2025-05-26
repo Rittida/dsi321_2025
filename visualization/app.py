@@ -97,59 +97,35 @@ with st.sidebar:
 
 df_filtered = filter_data(df_all, start_date, end_date, selected_provinces)
 
-# Container for KPI and main content
-placeholder = st.empty()
+# Scorecard
+today = pd.to_datetime(datetime.today().date())
+df_today = df_all[pd.to_datetime(df_all['timestamp']).dt.date == today.date()]
 
-with placeholder.container():
+## Define PM2.5 < 25 = "อากาศดี"
+good_air_df = df_today[df_today['PM25.aqi'] < 25]
 
-    if not df_filtered.empty:
-        # AVG for Selection Interval
-        avg_aqi = df_filtered['PM25.aqi'].mean()
-        avg_color = df_filtered['PM25.color_id'].mean()
+## Calculate number of stations and province
+num_good_stations = good_air_df['nameEN'].nunique()
+num_good_provinces = good_air_df['province'].nunique()
 
-        # Previous Day
-        prev_day = end_date - pd.Timedelta(days=1)
-        df_prev_day = filter_data(df_all, prev_day, prev_day, selected_provinces)
+## Show scorecard
+col1, col2, col3 = st.columns(3)
 
-        # AVG of Previous Day
-        prev_avg_aqi = df_prev_day['PM25.aqi'].mean()
-        prev_avg_color = df_prev_day['PM25.color_id'].mean()
+with col1:
+    st.metric("✅ สถานีที่อากาศดี", f"{num_good_stations} สถานี")
 
-        # Delta
-        delta_aqi = None if pd.isna(prev_avg_aqi) else avg_aqi - prev_avg_aqi
-        delta_color = None if pd.isna(prev_avg_color) else avg_color - prev_avg_color
+with col2:
+    st.metric("✅ จังหวัดที่อากาศดี", f"{num_good_provinces} จังหวัด")
 
-        # Area that have the Most AQI
-        area_highest_aqi = df_filtered.groupby('areaTH')['PM25.aqi'].mean().idxmax()
-        area_highest_aqi_val = df_filtered.groupby('areaTH')['PM25.aqi'].mean().max()
+with col3:
+    today_avg = df_today['PM25.aqi'].mean()
+    yesterday = today - pd.Timedelta(days=1)
+    df_yesterday = df_all[df_all['timestamp'].dt.date == yesterday.date()]
+    yesterday_avg = df_yesterday['PM25.aqi'].mean()
 
-        # Area Most AQI of Previous
-        if not df_prev_day.empty:
-            # area_prev_highest_aqi = df_prev_day.groupby('areaTH')['PM25.aqi'].mean().idxmax()
-            area_prev_highest_aqi_val = df_prev_day.groupby('areaTH')['PM25.aqi'].mean().max()
-            delta_area_aqi = area_highest_aqi_val - area_prev_highest_aqi_val
-        else:
-            delta_area_aqi = None
+    st.metric("ค่า PM2.5 เฉลี่ยทั่วประเทศ", f"{today_avg:.1f} µg/m³", delta=f"{(today_avg - yesterday_avg):+.1f}")
 
-        # Scorecards
-        kpi1, kpi2, kpi3 = st.columns(3)
-        kpi1.metric(
-            label="🌡️ ค่าเฉลี่ยคุณภาพ PM2.5 ในอากาศ",
-            value=f"{avg_aqi:.2f}",
-            delta=f"{delta_aqi:+.2f}" if delta_aqi is not None else None
-        )
-        kpi2.metric(
-            label="🎨 ค่าเฉลี่ยระดับ PM2.5 ของประเทศไทย",
-            value=f"{avg_color:.2f}",
-            delta=f"{delta_color:+.2f}" if delta_color is not None else None
-        )
-        kpi3.metric(
-            label="📍 พื้นที่ที่มีระดับ PM2.5 สูงสุด",
-            value=area_highest_aqi,
-            delta=f"{delta_area_aqi:+.2f}" if delta_area_aqi is not None else None
-        )
-    else:
-        st.warning("ไม่พบข้อมูลในช่วงเวลาหรือจังหวัดที่เลือก")
+
 
 # Card view setting (Top 10 PM2.5)
 ## กำหนดฟังก์ชันสีตามค่า AQI
