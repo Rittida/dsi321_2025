@@ -28,12 +28,12 @@
         "string",
         "float64",
         "float64",
-        "int64",
         "float64",
         "int64",
         "int64",
-        "int32",
-        "int32"
+        "int64",
+        "float64",
+        "float64"
     ],
     "key_columns": [
         "timestamp",
