@@ -16,7 +16,27 @@ In this project, we work with near real-time air quality data collected from mul
 
 >🪄 Main goal is to build an interactive dashboard using Streamlit that helps users easily understand trends in air pollution, identify areas with good or poor air quality, and recommend provinces with the best conditions for outdoor activities.
 
-### 🪿 List of column names (15 Columns)
+### 💪🏻 Data Schema
+The data schema is defined in `work/schema.md`. For this air quality data example:
+<pre>
+{
+  "columns": [
+    "timestamp", "stationID", "nameTH", "nameEN", "areaTH",
+    "areaEN", "stationType", "lat", "long", "PM25.color_id",
+    "PM25.aqi", "year", "month", "day", "hour"
+  ],
+  "types": [
+    "datetime64[ns]", "string", "string", "string", "string", 
+    "string", "string", "float64", "float64", "int64",  
+    "float64", "int64", "int64", "int32", "int32"
+    ],
+  "key_columns": [
+    "timestamp", "stationID", "nameTH", "nameEN", "areaTH",
+    "areaEN", "stationType", "lat", "long", "PM25.color_id",
+    "year", "month", "day", "hour"
+  ]
+}
+</pre>
 <p align="center">
   <img width="1000" alt="Screenshot 2568-05-27 at 02 35 20" src="https://github.com/user-attachments/assets/20500a3d-0bad-43b7-8090-be6ef7587447" />
 </p>
